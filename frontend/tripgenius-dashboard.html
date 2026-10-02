@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TripGenius Dashboard</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--text:#1b2033;--muted:#667;--line:#e4e7f0;--accent:#4f46e5;--accent2:#e8e7ff;--ok:#16a34a;--bad:#dc2626;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1220;--card:#181c30;--text:#eceefb;--muted:#9aa0bd;--line:#2a3050;--accent:#8b85ff;--accent2:#262a52}}
+:root[data-theme="dark"]{--bg:#0f1220;--card:#181c30;--text:#eceefb;--muted:#9aa0bd;--line:#2a3050;--accent:#8b85ff;--accent2:#262a52}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:20px}
+h1{font-size:1.5rem;margin:0}h2{font-size:1.1rem;margin:0 0 12px}h3{font-size:1rem;margin:0}
+.sub{color:var(--muted);font-size:.9rem}
+.brand{color:var(--accent);font-weight:700}
+.grid{display:grid;gap:16px}
+.main{grid-template-columns:2fr 1fr}
+@media (max-width:820px){.main{grid-template-columns:1fr}}
+.cards{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+section{margin-bottom:24px}
+.tag{display:inline-block;background:var(--accent2);color:var(--accent);border-radius:999px;padding:2px 10px;font-size:.75rem;font-weight:600}
+.day-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.slot{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.slot:first-of-type{border-top:0}
+.time{min-width:64px;color:var(--accent);font-weight:600;font-size:.85rem}
+.wx-now{display:flex;align-items:center;gap:14px}
+.wx-ico{font-size:2.6rem}.wx-temp{font-size:2rem;font-weight:700}
+.wx-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:8px;margin-top:14px;text-align:center;font-size:.8rem}
+.wx-days div{background:var(--accent2);border-radius:10px;padding:8px 4px}
+.att .ico{font-size:1.8rem}.att p{margin:6px 0;color:var(--muted);font-size:.88rem}
+.meta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.bar{height:10px;background:var(--accent2);border-radius:99px;overflow:hidden;margin:4px 0 12px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.row{display:flex;justify-content:space-between;font-size:.92rem}
+.total{display:flex;justify-content:space-between;border-top:2px solid var(--line);padding-top:10px;font-weight:700}
+.pack-group{margin-bottom:12px}.pack-group h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+label.chk{display:flex;gap:8px;align-items:center;padding:4px 0;cursor:pointer}
+label.chk.done span{text-decoration:line-through;color:var(--muted)}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:7px 14px;cursor:pointer}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap}
+.skel{background:linear-gradient(90deg,var(--line),var(--accent2),var(--line));background-size:200% 100%;animation:sh 1.2s infinite;border-radius:12px;height:120px}
+@keyframes sh{to{background-position:-200% 0}}
+.err{text-align:center;padding:40px 16px;border:1px dashed var(--bad);border-radius:14px;background:var(--card)}
+.err .big{font-size:2.4rem}.err p{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><div class="brand">✈️ TripGenius AI</div><h1 id="title">Your travel plan</h1><div class="sub" id="subtitle"></div></div>
+    <div class="ctrl">
+      <button id="reload">↻ Regenerate</button>
+      <button id="fail" title="Preview the error state">Simulate error</button>
+    </div>
+  </header>
+  <div id="app" aria-live="polite"></div>
+</div>
+
+<script>
+/* ---------- Data layer ----------
+   Replace fetchTripPlan() with a real call, e.g. fetch('/api/trips/123').then(r => r.json()).
+   Expected shape matches MOCK_PLAN below. */
+const MOCK_PLAN = {
+  destination:"Kyoto, Japan", dates:"12–15 Apr 2027", travelers:2, currency:"$",
+  itinerary:[
+    {day:1,theme:"Arrival & Gion",slots:[{time:"10:00",title:"Check in near Kyoto Station",note:"Drop bags, grab an IC card"},{time:"13:00",title:"Lunch at Nishiki Market",note:"Try tamagoyaki and pickles"},{time:"16:00",title:"Walk through Gion",note:"Best light for photos before dusk"},{time:"19:00",title:"Kaiseki dinner",note:"Reserve ahead"}]},
+    {day:2,theme:"Temples of the East",slots:[{time:"07:30",title:"Fushimi Inari Shrine",note:"Go early to beat crowds"},{time:"11:30",title:"Kiyomizu-dera",note:"Walk down Sannenzaka lane"},{time:"15:00",title:"Tea ceremony",note:"45-minute session"}]},
+    {day:3,theme:"Arashiyama & Gardens",slots:[{time:"08:30",title:"Bamboo Grove",note:"Arrive at opening"},{time:"11:00",title:"Tenryu-ji Garden",note:"UNESCO World Heritage site"},{time:"14:00",title:"Togetsukyo Bridge & river stroll",note:"Optional boat ride"}]},
+    {day:4,theme:"Golden Pavilion & Departure",slots:[{time:"09:00",title:"Kinkaku-ji",note:"Quick, iconic stop"},{time:"12:00",title:"Final souvenir shopping",note:"Matcha, ceramics"},{time:"15:00",title:"Train to airport",note:"Allow 90 minutes"}]}
+  ],
+  weather:{now:{temp:18,cond:"Partly cloudy",icon:"⛅",humidity:58,wind:12},
+    forecast:[{d:"Mon",icon:"☀️",hi:21,lo:11},{d:"Tue",icon:"⛅",hi:19,lo:10},{d:"Wed",icon:"🌧️",hi:16,lo:9},{d:"Thu",icon:"☀️",hi:20,lo:10}]},
+  attractions:[
+    {name:"Fushimi Inari Shrine",icon:"⛩️",desc:"Thousands of vermilion torii gates winding up a forested mountain.",rating:4.8,cost:"Free",duration:"2–3 h"},
+    {name:"Kinkaku-ji",icon:"🏯",desc:"The gold-leaf-covered Zen temple reflected in a mirror pond.",rating:4.6,cost:"$4",duration:"1 h"},
+    {name:"Arashiyama Bamboo Grove",icon:"🎋",desc:"A towering, whispering path of bamboo on the city's west side.",rating:4.5,cost:"Free",duration:"1 h"},
+    {name:"Kiyomizu-dera",icon:"🌸",desc:"Hillside temple with a wooden stage and sweeping city views.",rating:4.7,cost:"$3",duration:"1.5 h"}
+  ],
+  budget:[{cat:"Flights",amount:900},{cat:"Accommodation",amount:520},{cat:"Food & drink",amount:340},{cat:"Local transport",amount:80},{cat:"Activities",amount:150},{cat:"Shopping & misc.",amount:110}],
+  packing:[
+    {group:"Clothing",items:["Light layers","Rain jacket","Comfortable walking shoes","Slip-on shoes for temples"]},
+    {group:"Essentials",items:["Passport","Travel insurance","Yen cash","Portable Wi-Fi / eSIM"]},
+    {group:"Tech",items:["Phone charger","Power bank","Type A plug adapter"]}
+  ]
+};
+function fetchTripPlan(forceError){
+  return new Promise((res,rej)=>setTimeout(()=>forceError?rej(new Error("TripGenius could not reach the planning service.")):res(MOCK_PLAN),1200));
+}
+
+/* ---------- Reusable components (data in → HTML string out) ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const Section=(title,body)=>`<section><h2>${title}</h2>${body}</section>`;
+
+const ItineraryCard=d=>`<article class="card">
+  <div class="day-head"><h3>Day ${d.day}</h3><span class="tag">${esc(d.theme)}</span></div>
+  ${d.slots.map(s=>`<div class="slot"><div class="time">${esc(s.time)}</div><div><strong>${esc(s.title)}</strong><div class="sub">${esc(s.note)}</div></div></div>`).join("")}
+</article>`;
+
+const WeatherCard=w=>`<div class="card">
+  <div class="wx-now"><div class="wx-ico">${w.now.icon}</div>
+    <div><div class="wx-temp">${w.now.temp}°C</div><div class="sub">${esc(w.now.cond)} · ${w.now.humidity}% humidity · ${w.now.wind} km/h wind</div></div></div>
+  <div class="wx-days">${w.forecast.map(f=>`<div><strong>${f.d}</strong><div style="font-size:1.4rem">${f.icon}</div>${f.hi}° / ${f.lo}°</div>`).join("")}</div>
+</div>`;
+
+const AttractionCard=a=>`<article class="card att"><div class="ico">${a.icon}</div><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p>
+  <div class="meta"><span>⭐ ${a.rating}</span><span>${esc(a.cost)}</span><span>⏱ ${esc(a.duration)}</span></div></article>`;
+
+const BudgetSection=(items,cur)=>{
+  const total=items.reduce((s,i)=>s+i.amount,0), fmt=n=>cur+n.toLocaleString();
+  return `<div class="card">${items.map(i=>`<div class="row"><span>${esc(i.cat)}</span><span>${fmt(i.amount)}</span></div>
+    <div class="bar"><i style="width:${(i.amount/total*100).toFixed(1)}%"></i></div>`).join("")}
+    <div class="total"><span>Total</span><span>${fmt(total)}</span></div></div>`;
+};
+
+function PackingChecklist(groups,state){
+  return `<div class="card">${groups.map(g=>`<div class="pack-group"><h3>${esc(g.group)}</h3>${g.items.map(it=>{
+    const id=g.group+"|"+it, on=state[id];
+    return `<label class="chk ${on?"done":""}"><input type="checkbox" data-id="${esc(id)}" ${on?"checked":""}><span>${esc(it)}</span></label>`}).join("")}</div>`).join("")}
+    <div class="sub" id="pack-count"></div></div>`;
+}
+
+/* ---------- State views ---------- */
+const LoadingView=()=>`<div class="grid main"><div class="grid"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div><div class="grid"><div class="skel"></div><div class="skel"></div></div></div>
+  <p class="sub" style="text-align:center">✨ TripGenius is building your plan…</p>`;
+const ErrorView=msg=>`<div class="err" role="alert"><div class="big">⚠️</div><h2>Something went wrong</h2><p>${esc(msg)}</p><button class="primary" id="retry">Try again</button></div>`;
+
+/* ---------- App ---------- */
+const app=document.getElementById("app");
+let packState={};
+try{packState=JSON.parse(localStorage.getItem("tg-pack")||"{}")}catch(e){}
+
+function renderDashboard(p){
+  document.getElementById("title").textContent=p.destination;
+  document.getElementById("subtitle").textContent=`${p.dates} · ${p.travelers} traveler${p.travelers>1?"s":""}`;
+  app.innerHTML=`<div class="grid main"><div>
+      ${Section("🗓️ Day-wise itinerary",`<div class="grid">${p.itinerary.map(ItineraryCard).join("")}</div>`)}
+      ${Section("📍 Tourist attractions",`<div class="grid cards">${p.attractions.map(AttractionCard).join("")}</div>`)}
+    </div><aside>
+      ${Section("🌤️ Weather",WeatherCard(p.weather))}
+      ${Section("💰 Budget breakdown",BudgetSection(p.budget,p.currency))}
+      ${Section("🎒 Packing checklist",PackingChecklist(p.packing,packState))}
+    </aside></div>`;
+  updateCount(p);
+  app.querySelectorAll("input[data-id]").forEach(cb=>cb.addEventListener("change",()=>{
+    packState[cb.dataset.id]=cb.checked; cb.parentElement.classList.toggle("done",cb.checked);
+    try{localStorage.setItem("tg-pack",JSON.stringify(packState))}catch(e){}
+    updateCount(p);
+  }));
+}
+function updateCount(p){
+  const all=p.packing.flatMap(g=>g.items.map(i=>g.group+"|"+i)), n=all.filter(i=>packState[i]).length;
+  const el=document.getElementById("pack-count"); if(el) el.textContent=`${n} of ${all.length} packed`;
+}
+async function load(forceError){
+  app.innerHTML=LoadingView();
+  try{ renderDashboard(await fetchTripPlan(forceError)); }
+  catch(e){ app.innerHTML=ErrorView(e.message); document.getElementById("retry").onclick=()=>load(false); }
+}
+document.getElementById("reload").onclick=()=>load(false);
+document.getElementById("fail").onclick=()=>load(true);
+load(false);
+</script>
+</body>
+</html>
