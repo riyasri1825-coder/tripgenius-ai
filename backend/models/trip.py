@@ -32,10 +32,34 @@ class TripPreferences(BaseModel):
     )
 
 
+class ItineraryActivity(BaseModel):
+    name: str
+    description: str
+    suggested_place: str
+    cost_level: Literal["free", "low", "moderate", "high"]
+
+
+class ItineraryDay(BaseModel):
+    day: PositiveInt
+    theme: str
+    morning: ItineraryActivity
+    afternoon: ItineraryActivity
+    evening: ItineraryActivity
+
+
+class TripItinerary(BaseModel):
+    budget_note: str
+    days: list[ItineraryDay] = Field(min_length=1, max_length=60)
+
+
+class TripGenerationData(TripPreferences):
+    itinerary: TripItinerary
+
+
 class TripGenerationResponse(BaseModel):
     success: bool
     message: str
-    data: TripPreferences
+    data: TripGenerationData
 
 
 class ValidationErrorDetail(BaseModel):
