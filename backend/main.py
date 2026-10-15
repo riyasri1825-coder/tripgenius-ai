@@ -3,9 +3,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routes.trips import (
+    itinerary_generation_exception_handler,
     router as trips_router,
     validation_exception_handler,
 )
+from backend.services.itinerary import ItineraryGenerationError
 
 app = FastAPI(
     title="TripGenius API",
@@ -22,4 +24,8 @@ app.add_middleware(
 )
 
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(
+    ItineraryGenerationError,
+    itinerary_generation_exception_handler,
+)
 app.include_router(trips_router, prefix="/api/trips", tags=["trips"])
