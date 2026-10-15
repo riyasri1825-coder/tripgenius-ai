@@ -11,6 +11,7 @@ from pydantic import (
 
 BudgetTier = Literal["budget", "comfortable", "luxury"]
 TravelType = Literal["solo", "couple", "family", "friends"]
+
 Interest = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=80),
@@ -24,18 +25,44 @@ class TripPreferences(BaseModel):
         str,
         StringConstraints(strip_whitespace=True, min_length=1, max_length=120),
     ]
+
     days: int = Field(ge=1, le=60)
+
     budget: PositiveInt | BudgetTier
+
     interests: list[Interest] = Field(min_length=1, max_length=20)
+
     travel_type: TravelType = Field(
         validation_alias=AliasChoices("travel_type", "travelType")
     )
 
 
+class ItineraryDay(BaseModel):
+    day: int
+    theme: str
+    morning: str
+    afternoon: str
+    evening: str
+
+
+class Itinerary(BaseModel):
+    days: list[ItineraryDay]
+    budget_note: str
+
+
+class TripData(BaseModel):
+    destination: str
+    days: int
+    budget: PositiveInt | BudgetTier
+    interests: list[str]
+    travel_type: TravelType
+    itinerary: Itinerary
+
+
 class TripGenerationResponse(BaseModel):
     success: bool
     message: str
-    data: TripPreferences
+    data: TripData
 
 
 class ValidationErrorDetail(BaseModel):
